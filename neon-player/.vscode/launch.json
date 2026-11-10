@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Neon Player",
+      "request": "launch",
+      "mainClass": "MusicServer",
+      "cwd": "${workspaceFolder}",
+      "args": "8080"
+    }
+  ]
+}
