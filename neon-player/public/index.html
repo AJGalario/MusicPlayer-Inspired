@@ -3,88 +3,284 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1a0838">
-  <title>Neon Player</title>
+  <meta name="theme-color" content="#9b8ecf" id="themeColor">
+  <meta name="description" content="HeadSet — A beautiful music player with equalizer, playlist, and add music support.">
+  <title>HeadSet Player</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- background: drop a "bg.jpg" into /public to use your own picture instead -->
-  <div class="bg" aria-hidden="true">
-    <div class="neon-left"></div>
-    <div class="neon-right"></div>
-    <div class="floor"></div>
+
+  <!-- Dynamic color gradient background -->
+  <div class="bg-gradient" id="bgGradient" aria-hidden="true"></div>
+  <div class="bg-blur-orbs" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
   </div>
-  <canvas id="rain" aria-hidden="true"></canvas>
 
-  <button id="menuBtn" class="menu-btn" type="button" aria-label="Open playlist" aria-expanded="false" aria-controls="drawer">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-  </button>
-
-  <div id="scrim" class="scrim"></div>
-  <aside id="drawer" class="drawer" aria-label="Playlist" inert>
-    <header>
+  <!-- ==================== LIBRARY DRAWER ==================== -->
+  <div id="scrim" class="scrim" role="presentation"></div>
+  <aside id="drawer" class="drawer" aria-label="Library" inert>
+    <div class="drawer-header">
       <h2>Library</h2>
-      <button id="refreshBtn" class="icon-btn small" type="button" aria-label="Rescan music folder">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-      </button>
-      <button id="closeBtn" class="icon-btn small" type="button" aria-label="Close playlist">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
-    </header>
-    <input id="search" type="search" placeholder="Search songs" autocomplete="off">
-    <ul id="list"></ul>
-    <p id="empty" class="empty" hidden>No songs yet.<br>Put audio files in the <b>music</b> folder, then tap rescan.</p>
+      <div class="drawer-actions">
+        <!-- Add Music button -->
+        <button id="addMusicBtn" class="icon-btn" type="button" aria-label="Add music files" title="Add music">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+        </button>
+        <input id="fileInput" type="file" multiple accept="audio/*,.mp3,.flac,.wav,.m4a,.ogg,.opus,.aac" hidden aria-hidden="true">
+        <!-- Rescan button -->
+        <button id="refreshBtn" class="icon-btn" type="button" aria-label="Rescan music folder" title="Rescan folder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+        </button>
+        <!-- Close button -->
+        <button id="closeBtn" class="icon-btn" type="button" aria-label="Close library">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+            <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <input id="search" class="search-input" type="search" placeholder="🔍  Search songs…" autocomplete="off" aria-label="Search songs">
+    <ul id="list" class="track-list" role="list"></ul>
+    <p id="empty" class="empty-state" hidden>
+      No songs yet.<br>
+      <span>Tap <strong>+</strong> to add local files, or put audio in the <strong>music</strong> folder.</span>
+    </p>
   </aside>
 
-  <main class="player">
-    <div class="art">
-      <img id="cover" alt="Album cover" hidden>
-      <div id="artFallback" class="art-fallback" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+  <!-- ==================== MAIN PLAYER CARD ==================== -->
+  <main class="app-shell" role="main">
+    <div class="player-card" id="playerCard">
+
+      <!-- Top bar -->
+      <header class="top-bar">
+        <button id="menuBtn" class="brand-btn" type="button" aria-label="Open library" aria-expanded="false" aria-controls="drawer">
+          <svg class="headset-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
+            <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+          </svg>
+          <span class="brand-name">HeadSet</span>
+        </button>
+        <span class="now-playing-label" aria-live="polite">NOW PLAYING</span>
+        <button id="moreBtn" class="icon-btn-sm" type="button" aria-label="More options" aria-haspopup="true">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/>
+          </svg>
+        </button>
+        <!-- More menu dropdown -->
+        <div id="moreMenu" class="more-menu" hidden role="menu" aria-label="Options">
+          <button class="more-menu-item" role="menuitem" id="eqMenuBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+              <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+              <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
+            </svg>
+            Equalizer
+          </button>
+          <button class="more-menu-item" role="menuitem" id="addMusicMenu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+            </svg>
+            Add Music
+          </button>
+        </div>
+      </header>
+
+      <!-- Album art -->
+      <div class="art-container" id="artContainer">
+        <img id="cover" class="art-image" alt="Album cover" hidden>
+        <div id="artFallback" class="art-fallback" aria-hidden="true">
+          <svg viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="38" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+            <circle cx="40" cy="40" r="22" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+            <circle cx="40" cy="40" r="6" fill="rgba(255,255,255,0.5)"/>
+            <circle cx="40" cy="40" r="2.5" fill="rgba(255,255,255,0.9)"/>
+            <line x1="40" y1="2" x2="40" y2="18" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
+          </svg>
+        </div>
+        <!-- Vinyl spin ring (shows when playing) -->
+        <div class="vinyl-ring" id="vinylRing" aria-hidden="true"></div>
+      </div>
+
+      <!-- Track info -->
+      <div class="track-info">
+        <h1 id="title" class="track-title">Loading…</h1>
+        <p id="artistAlbum" class="track-artist" aria-live="polite">—</p>
+      </div>
+
+      <!-- Seek bar -->
+      <div class="seek-row">
+        <span id="timeElapsed" class="time-label" aria-hidden="true">0:00</span>
+        <input id="seek" type="range" class="seek-bar" min="0" max="1000" step="1" value="0" aria-label="Seek">
+        <span id="timeDuration" class="time-label" aria-hidden="true">0:00</span>
+      </div>
+
+      <!-- Main controls -->
+      <div class="controls-row">
+        <button id="shuffle" class="ctrl-icon" type="button" aria-label="Shuffle" aria-pressed="false" title="Shuffle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/>
+            <polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/>
+            <line x1="4" y1="4" x2="9" y2="9"/>
+          </svg>
+        </button>
+        <button id="prev" class="ctrl-circle" type="button" aria-label="Previous" title="Previous">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/>
+          </svg>
+        </button>
+        <button id="play" class="ctrl-play" type="button" aria-label="Play">
+          <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+          <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" hidden>
+            <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>
+          </svg>
+        </button>
+        <button id="next" class="ctrl-circle" type="button" aria-label="Next" title="Next">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>
+          </svg>
+        </button>
+        <button id="repeat" class="ctrl-icon" type="button" aria-label="Repeat: off" data-mode="0" title="Repeat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+            <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+          <span class="repeat-one-badge" id="repeatOneBadge" hidden>1</span>
+        </button>
+      </div>
+
+      <!-- Volume row -->
+      <div class="volume-row" id="volumeRow">
+        <button id="mute" class="ctrl-icon-sm" type="button" aria-label="Mute">
+          <svg id="iconVol" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" fill="none" stroke-width="2"/>
+          </svg>
+          <svg id="iconMute" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" hidden>
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <line x1="23" y1="9" x2="17" y2="15" stroke-width="2.5"/><line x1="17" y1="9" x2="23" y2="15" stroke-width="2.5"/>
+          </svg>
+        </button>
+        <input id="vol" type="range" class="vol-bar" min="0" max="100" step="1" value="70" aria-label="Volume">
+        <button id="eqBtn" class="ctrl-icon-sm eq-btn" type="button" aria-label="Equalizer" title="Equalizer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+            <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+            <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
+          </svg>
+        </button>
+      </div>
+
+    </div><!-- /player-card -->
+  </main>
+
+  <!-- ==================== EQUALIZER PANEL ==================== -->
+  <div id="eqScrim" class="eq-scrim" aria-hidden="true"></div>
+  <div id="eqPanel" class="eq-panel" role="dialog" aria-label="Equalizer" aria-modal="true" inert>
+    <div class="eq-drag-handle" aria-hidden="true"></div>
+    <div class="eq-header">
+      <h2 class="eq-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="20" height="20">
+          <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+          <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+          <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
+        </svg>
+        Equalizer
+      </h2>
+      <button id="eqCloseBtn" class="icon-btn-sm" type="button" aria-label="Close equalizer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+          <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Presets -->
+    <div class="eq-presets" role="group" aria-label="EQ presets">
+      <button class="preset-btn active" data-preset="flat">Flat</button>
+      <button class="preset-btn" data-preset="bass">Bass Boost</button>
+      <button class="preset-btn" data-preset="vocal">Vocal</button>
+      <button class="preset-btn" data-preset="rock">Rock</button>
+      <button class="preset-btn" data-preset="pop">Pop</button>
+      <button class="preset-btn" data-preset="jazz">Jazz</button>
+    </div>
+
+    <!-- EQ Band sliders -->
+    <div class="eq-bands" role="group" aria-label="Frequency bands">
+      <div class="eq-band">
+        <span class="eq-band-label">Sub-Bass</span>
+        <span class="eq-band-freq">60 Hz</span>
+        <div class="eq-slider-wrap">
+          <input type="range" id="eq60" class="eq-slider" min="-15" max="15" step="0.5" value="0" aria-label="60 Hz Sub-Bass gain">
+          <div class="eq-meter" id="meter60"></div>
+        </div>
+        <span class="eq-band-db" id="val60">0 dB</span>
+      </div>
+      <div class="eq-band">
+        <span class="eq-band-label">Bass</span>
+        <span class="eq-band-freq">250 Hz</span>
+        <div class="eq-slider-wrap">
+          <input type="range" id="eq250" class="eq-slider" min="-15" max="15" step="0.5" value="0" aria-label="250 Hz Bass gain">
+          <div class="eq-meter" id="meter250"></div>
+        </div>
+        <span class="eq-band-db" id="val250">0 dB</span>
+      </div>
+      <div class="eq-band">
+        <span class="eq-band-label">Mid</span>
+        <span class="eq-band-freq">1 kHz</span>
+        <div class="eq-slider-wrap">
+          <input type="range" id="eq1k" class="eq-slider" min="-15" max="15" step="0.5" value="0" aria-label="1 kHz Mid gain">
+          <div class="eq-meter" id="meter1k"></div>
+        </div>
+        <span class="eq-band-db" id="val1k">0 dB</span>
+      </div>
+      <div class="eq-band">
+        <span class="eq-band-label">Presence</span>
+        <span class="eq-band-freq">4 kHz</span>
+        <div class="eq-slider-wrap">
+          <input type="range" id="eq4k" class="eq-slider" min="-15" max="15" step="0.5" value="0" aria-label="4 kHz Presence gain">
+          <div class="eq-meter" id="meter4k"></div>
+        </div>
+        <span class="eq-band-db" id="val4k">0 dB</span>
+      </div>
+      <div class="eq-band">
+        <span class="eq-band-label">Brilliance</span>
+        <span class="eq-band-freq">12 kHz</span>
+        <div class="eq-slider-wrap">
+          <input type="range" id="eq12k" class="eq-slider" min="-15" max="15" step="0.5" value="0" aria-label="12 kHz Brilliance gain">
+          <div class="eq-meter" id="meter12k"></div>
+        </div>
+        <span class="eq-band-db" id="val12k">0 dB</span>
       </div>
     </div>
 
-    <section class="panel">
-      <input id="seek" type="range" min="0" max="1000" step="1" value="0" aria-label="Seek">
+    <!-- Tempo / Playback Rate -->
+    <div class="tempo-row">
+      <label class="tempo-label" for="tempo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Tempo
+      </label>
+      <input type="range" id="tempo" class="tempo-slider" min="0.5" max="2.0" step="0.05" value="1.0" aria-label="Playback speed">
+      <span id="tempoVal" class="tempo-val">1.0×</span>
+    </div>
+  </div>
 
-      <div class="controls">
-        <button id="shuffle" class="icon-btn" type="button" aria-label="Shuffle" aria-pressed="false">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-        </button>
-        <button id="prev" class="icon-btn big" type="button" aria-label="Previous">
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
-        </button>
-        <button id="play" class="play" type="button" aria-label="Play">
-          <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><polygon points="7 3 20 12 7 21 7 3"/></svg>
-          <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" hidden><rect x="6" y="4" width="4.5" height="16" rx="1"/><rect x="13.5" y="4" width="4.5" height="16" rx="1"/></svg>
-        </button>
-        <button id="next" class="icon-btn big" type="button" aria-label="Next">
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
-        </button>
-        <button id="repeat" class="icon-btn" type="button" aria-label="Repeat: off" data-mode="0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        </button>
-      </div>
-
-      <div id="volumeRow" class="volume">
-        <button id="mute" class="icon-btn small" type="button" aria-label="Mute">
-          <svg id="iconVol" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" fill="none"/></svg>
-          <svg id="iconMute" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" hidden><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15" fill="none"/><line x1="17" y1="9" x2="23" y2="15" fill="none"/></svg>
-        </button>
-        <input id="vol" type="range" min="0" max="100" step="1" value="70" aria-label="Volume">
-      </div>
-
-      <div class="now" aria-live="polite">
-        <small>Now Playing</small>
-        <h1 id="title">Loading…</h1>
-      </div>
-    </section>
-    <audio id="audio" preload="metadata"></audio>
-  </main>
-
+  <audio id="audio" preload="metadata"></audio>
   <script src="app.js"></script>
 </body>
 </html>
