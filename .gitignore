@@ -1,2 +1,17 @@
 # Project exclude paths
 /out/
+_build/
+_dist/
+output/
+HeadSet-App/
+*.class
+*.jar
+*.exe
+.headset.lock
+*.lock
+.idea/
+*.iml
+.vscode/
+Thumbs.db
+Desktop.ini
+.DS_Store
