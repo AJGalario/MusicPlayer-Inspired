@@ -204,7 +204,7 @@ public class MusicServer {
             for (String location : candidates) {
                 if (java.nio.file.Files.isRegularFile(java.nio.file.Path.of(location))) {
                     try {
-                        new ProcessBuilder(location, "--app=" + url, "--window-size=420,680", "--window-position=110,100").start();
+                        new ProcessBuilder(location, "--app=" + url, "--window-size=440,520", "--window-position=110,100").start();
                         return;
                     } catch (IOException ignored) {}
                 }

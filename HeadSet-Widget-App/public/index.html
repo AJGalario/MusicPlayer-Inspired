@@ -2,195 +2,75 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#7F80E9">
-  <meta name="description" content="HeadSet: Compact PC Music Widget">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111019">
+  <meta name="description" content="HeadSet: a compact desktop music widget.">
   <title>HeadSet Widget</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="figma-widget" id="widget">
-    
-    <!-- 1. Top Bar: HeadSet + NOW PLAYING + Action Icons (No minimize, No maximize) -->
-    <header class="figma-bar">
-      <div class="figma-brand" aria-label="HeadSet">
-        <div class="figma-brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#222321" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 14v-2a8 8 0 0 1 16 0v2"/>
-            <rect x="2.5" y="13" width="5" height="8" rx="2.2"/>
-            <rect x="16.5" y="13" width="5" height="8" rx="2.2"/>
-          </svg>
-        </div>
-        <span class="figma-brand-title">HeadSet</span>
+  <div class="widget" id="widget">
+    <header class="bar">
+      <div class="logo" aria-label="HeadSet music widget">
+        <div class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="2.8" y="13" width="4.7" height="8" rx="2"/><rect x="16.5" y="13" width="4.7" height="8" rx="2"/></svg></div>
+        <span>headset<span class="logo-dot">.</span></span>
       </div>
-
-      <div class="figma-now-label" id="nowLabel">NOW PLAYING</div>
-
-      <div class="figma-actions">
-        <!-- Library Drawer Toggle -->
-        <button class="figma-icon-btn" id="libraryToggle" type="button" aria-label="Open music library" title="Music library">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#222321" stroke-width="2" stroke-linecap="round">
-            <path d="M4 6h16M4 12h16M4 18h11"/>
-          </svg>
-        </button>
-        <!-- Sound Settings Toggle -->
-        <button class="figma-icon-btn" id="settingsToggle" type="button" aria-label="Sound settings & EQ" title="Sound settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#222321" stroke-width="2" stroke-linecap="round">
-            <path d="M4 7h16M4 17h16M9 4v6M15 14v6"/>
-          </svg>
-        </button>
+      <div class="bar-actions">
+        <span class="live-tag"><span class="tiny-dot"></span> MUSIC WIDGET</span>
+        <button class="icon-button" id="libraryToggle" type="button" aria-label="Open music library" title="Music library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h11"/></svg></button>
+        <button class="icon-button" id="settingsToggle" type="button" aria-label="Open sound settings" title="Sound settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 17h16M9 4v6M15 14v6"/></svg></button>
+        <button class="icon-button" id="desktopToggle" type="button" aria-label="Open Desktop Player" title="Open Full Desktop Player" onclick="fetch('/api/open-desktop').catch(()=>{})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
       </div>
     </header>
 
-    <!-- 2. Album Cover Artwork -->
-    <div class="figma-art-wrap">
-      <div class="figma-art" id="album">
-        <img id="cover" alt="Album artwork" hidden>
-        <div class="figma-art-fallback" id="artFallback" aria-hidden="true">
-          <div class="figma-record">
-            <div class="figma-record-center">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-              </svg>
-            </div>
+    <main class="main-player">
+      <div class="now-playing">
+        <div class="album" id="album">
+          <img id="cover" alt="Album artwork" hidden>
+          <div class="album-fallback" id="artFallback" aria-hidden="true">
+            <div class="record"><div class="record-core"><svg viewBox="0 0 24 24" fill="none"><path d="M10 6v10.1a2.6 2.6 0 1 1-1.8-2.5V8.4l9-2v8.7a2.6 2.6 0 1 1-1.8-2.5V4.2L10 5.4" fill="currentColor"/></svg></div></div>
           </div>
         </div>
+        <div class="song-details">
+          <div class="eyebrow"><span class="playing-indicator" id="playingIndicator"><i></i><i></i><i></i></span><span id="nowLabel">READY TO PLAY</span></div>
+          <h1 id="title" title="">Your music, your space.</h1>
+          <p id="artist">Pick a song to begin</p>
+          <button id="addQuick" type="button" class="add-quick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg> Add music</button>
+        </div>
       </div>
-    </div>
 
-    <!-- 3. Track Details (Title & Artist) -->
-    <div class="figma-meta">
-      <h1 class="figma-title" id="title" title="Your music, your space.">Slow mornings</h1>
-      <p class="figma-artist" id="artist">Kairo · Soft Focus</p>
-    </div>
-
-    <!-- 4. Progress Bar & Timestamp -->
-    <div class="figma-timeline">
-      <div class="figma-seek-container">
+      <div class="timeline">
         <input type="range" min="0" max="1000" value="0" step="1" id="seek" aria-label="Song progress">
+        <div class="times"><span id="elapsed">0:00</span><span id="duration">0:00</span></div>
       </div>
-      <div class="figma-times">
-        <span id="elapsed">0:00</span>
-        <span id="duration">0:00</span>
+
+      <div class="player-buttons">
+        <button class="mode-button" id="shuffle" type="button" aria-label="Shuffle off" title="Shuffle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m17 3 4 0 0 4M3 17l5-5M13 8l8-5M17 21h4v-4M3 7l6 6M14 16l7 5"/></svg></button>
+        <button class="transport" id="prev" type="button" aria-label="Previous song" title="Previous"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5h2v14H5zm14 0v14L8 12z"/></svg></button>
+        <button class="play" id="play" type="button" aria-label="Play"><svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="m8 4 13 8-13 8z"/></svg><svg id="pauseIcon" viewBox="0 0 24 24" fill="currentColor" hidden><rect x="6.5" y="4" width="4" height="16" rx="1.3"/><rect x="13.5" y="4" width="4" height="16" rx="1.3"/></svg></button>
+        <button class="transport" id="next" type="button" aria-label="Next song" title="Next"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 5h2v14h-2zM5 5v14l11-7z"/></svg></button>
+        <button class="mode-button" id="repeat" type="button" aria-label="Repeat off" title="Repeat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/></svg><span id="repeatOne" hidden>1</span></button>
       </div>
-    </div>
 
-    <!-- 5. Controls: Shuffle | Prev | Play/Pause (Animated) | Next | Repeat -->
-    <div class="figma-controls">
-      <!-- Shuffle -->
-      <button class="figma-mode-btn" id="shuffle" type="button" aria-label="Shuffle" title="Shuffle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m16 3 5 0 0 5M4 20l5.5-5.5M14 9l7-6M16 21h5v-5M4 4l7 7M15 15l6 6"/>
-        </svg>
-      </button>
-
-      <!-- Previous (Pill 48x48) -->
-      <button class="figma-step-btn" id="prev" type="button" aria-label="Previous song" title="Previous">
-        <svg viewBox="0 0 24 24" fill="#222321">
-          <path d="M6 5h2v14H6zm13.5 0v14L8.5 12z"/>
-        </svg>
-      </button>
-
-      <!-- Play / Pause (Big 72x72 Circle with Smooth Animated Morph Transition) -->
-      <button class="figma-play-btn" id="play" type="button" aria-label="Play / Pause" title="Play / Pause">
-        <div class="icon-layer play-state" id="playIcon">
-          <svg viewBox="0 0 24 24" fill="#CFC0C0">
-            <path d="M8 5.14v13.72a1 1 0 0 0 1.55.83l11-6.86a1 1 0 0 0 0-1.66l-11-6.86a1 1 0 0 0-1.55.83z"/>
-          </svg>
-        </div>
-        <div class="icon-layer pause-state" id="pauseIcon">
-          <span class="pause-bar"></span>
-          <span class="pause-bar"></span>
-        </div>
-      </button>
-
-      <!-- Next (Pill 48x48) -->
-      <button class="figma-step-btn" id="next" type="button" aria-label="Next song" title="Next">
-        <svg viewBox="0 0 24 24" fill="#222321">
-          <path d="M16 5h2v14h-2zm-11.5 0v14l11-7z"/>
-        </svg>
-      </button>
-
-      <!-- Repeat -->
-      <button class="figma-mode-btn" id="repeat" type="button" aria-label="Repeat" title="Repeat">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/>
-        </svg>
-        <span id="repeatOne" hidden>1</span>
-      </button>
-    </div>
-
-    <!-- 6. Bottom Volume Control with Divider -->
-    <div class="figma-bottom">
-      <div class="figma-divider"></div>
-      <div class="figma-volume-row">
-        <button id="mute" class="figma-vol-btn" type="button" aria-label="Mute" title="Mute">
-          <svg id="volumeIcon" viewBox="0 0 24 24" fill="none" stroke="#787973" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M11 5 6 9H3v6h3l5 4V5ZM15.5 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/>
-          </svg>
-          <svg id="mutedIcon" viewBox="0 0 24 24" fill="none" stroke="#787973" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" hidden>
-            <path d="M11 5 6 9H3v6h3l5 4V5ZM16 9l5 6m0-6-5 6"/>
-          </svg>
-        </button>
-        <div class="figma-vol-slider-wrap">
-          <input id="volume" type="range" min="0" max="100" value="70" aria-label="Volume">
-        </div>
-        <span id="volumeLabel" class="figma-vol-pct">70%</span>
+      <div class="bottom-bar">
+        <div class="volume-control"><button id="mute" class="sm-icon" type="button" aria-label="Mute" title="Mute"><svg id="volumeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5ZM16 9a5 5 0 0 1 0 6M19 6a9 9 0 0 1 0 12"/></svg><svg id="mutedIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" hidden><path d="M11 5 6 9H3v6h3l5 4V5ZM16 9l5 6m0-6-5 6"/></svg></button><input id="volume" type="range" min="0" max="100" value="70" aria-label="Volume"><span id="volumeLabel">70%</span></div>
+        <button id="queueShortcut" class="queue-shortcut" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h9"/></svg><span id="songCount">0 songs</span></button>
       </div>
-    </div>
+    </main>
 
-    <!-- 7. Sliding Library Drawer Panel -->
     <section id="libraryPanel" class="panel" aria-label="Music library" hidden>
-      <div class="panel-top">
-        <div>
-          <span class="panel-kicker">YOUR COLLECTION</span>
-          <h2>Music library <span id="libraryCount">0</span></h2>
-        </div>
-        <button class="icon-button close" data-close type="button" aria-label="Close library">×</button>
-      </div>
-      <div class="library-tools">
-        <label class="search-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
-          <input id="search" type="search" placeholder="Search your songs" aria-label="Search music">
-        </label>
-        <button id="uploadBtn" class="upload-button" type="button" title="Add music" aria-label="Add music">+</button>
-        <button id="refresh" class="refresh-button" type="button" title="Rescan folder" aria-label="Refresh library">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5 9a7 7 0 0 1 12.4-2L20 12M4 12l2.6 5A7 7 0 0 0 19 15"/></svg>
-        </button>
-      </div>
-      <div class="list-scroller">
-        <ul id="songs" class="songs"></ul>
-        <div class="empty-list" id="emptyList" hidden>
-          <div class="empty-disc">♫</div>
-          <strong>No tracks here yet</strong>
-          <span>Add a music file to start listening.</span>
-          <button id="emptyAdd" type="button">Add your first song</button>
-        </div>
-      </div>
+      <div class="panel-top"><div><span class="panel-kicker">YOUR COLLECTION</span><h2>Music library <span id="libraryCount">0</span></h2></div><button class="icon-button close" data-close type="button" aria-label="Close library">×</button></div>
+      <div class="library-tools"><label class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Search your songs" aria-label="Search music"></label><button id="uploadBtn" class="upload-button" type="button" title="Add music" aria-label="Add music">+</button><button id="refresh" class="refresh-button" type="button" title="Rescan folder" aria-label="Refresh library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5 9a7 7 0 0 1 12.4-2L20 12M4 12l2.6 5A7 7 0 0 0 19 15"/></svg></button></div>
+      <div class="list-scroller"><ul id="songs" class="songs"></ul><div class="empty-list" id="emptyList" hidden><div class="empty-disc">♫</div><strong>No tracks here yet</strong><span>Add a music file to start listening.</span><button id="emptyAdd" type="button">Add your first song</button></div></div>
+      <p class="panel-foot">Files from your music folder are available here.</p>
     </section>
 
-    <!-- 8. Sliding Sound Controls & Equalizer Panel -->
     <section id="settingsPanel" class="panel" aria-label="Sound controls" hidden>
-      <div class="panel-top">
-        <div>
-          <span class="panel-kicker">MAKE IT YOURS</span>
-          <h2>Sound settings</h2>
-        </div>
-        <button class="icon-button close" data-close type="button" aria-label="Close sound settings">×</button>
-      </div>
+      <div class="panel-top"><div><span class="panel-kicker">MAKE IT YOURS</span><h2>Sound settings</h2></div><button class="icon-button close" data-close type="button" aria-label="Close sound settings">×</button></div>
       <h3 class="settings-caption">EQUALIZER</h3>
-      <div class="preset-row" id="presetRow">
-        <button type="button" data-preset="flat" class="preset selected">Flat</button>
-        <button type="button" data-preset="bass" class="preset">Bass</button>
-        <button type="button" data-preset="vocal" class="preset">Vocal</button>
-        <button type="button" data-preset="pop" class="preset">Pop</button>
-        <button type="button" data-preset="rock" class="preset">Rock</button>
-      </div>
+      <div class="preset-row" id="presetRow"><button type="button" data-preset="flat" class="preset selected">Flat</button><button type="button" data-preset="bass" class="preset">Bass</button><button type="button" data-preset="vocal" class="preset">Vocal</button><button type="button" data-preset="pop" class="preset">Pop</button><button type="button" data-preset="rock" class="preset">Rock</button></div>
       <div class="equalizer" id="equalizer">
         <div class="eq-band"><span id="db0">0</span><input id="eq0" type="range" min="-12" max="12" step="1" value="0" aria-label="60 hertz"><small>60</small></div>
         <div class="eq-band"><span id="db1">0</span><input id="eq1" type="range" min="-12" max="12" step="1" value="0" aria-label="250 hertz"><small>250</small></div>
@@ -198,17 +78,12 @@
         <div class="eq-band"><span id="db3">0</span><input id="eq3" type="range" min="-12" max="12" step="1" value="0" aria-label="4 kilohertz"><small>4k</small></div>
         <div class="eq-band"><span id="db4">0</span><input id="eq4" type="range" min="-12" max="12" step="1" value="0" aria-label="12 kilohertz"><small>12k</small></div>
       </div>
-      <div class="tempo-heading">
-        <div><h3>Playback speed</h3><p>Slow down or speed up songs</p></div>
-        <strong id="speedLabel">1.00×</strong>
-      </div>
+      <div class="tempo-heading"><div><h3>Playback speed</h3><p>Slow down or speed up songs</p></div><strong id="speedLabel">1.00×</strong></div>
       <input id="speed" class="speed-slider" type="range" min="0.5" max="2" step="0.05" value="1" aria-label="Playback speed">
+      <p class="settings-foot">Settings are saved on this device.</p>
     </section>
-
-    <!-- Toast Notification -->
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
-
   <input id="fileInput" type="file" multiple accept="audio/*,.mp3,.m4a,.wav,.ogg,.flac,.aac,.opus" hidden>
   <audio id="audio" preload="metadata"></audio>
   <script src="app.js"></script>
