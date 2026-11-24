@@ -1,18 +1,1 @@
-{
-  "name": "HeadSet Player",
-  "short_name": "HeadSet",
-  "description": "A beautiful music player with equalizer",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#9b8ecf",
-  "theme_color": "#7c6fcd",
-  "orientation": "any",
-  "icons": [
-    {
-      "src": "favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ]
-}
+{"name":"HeadSet Music Widget","short_name":"HeadSet","description":"Compact personal music player","start_url":"/","scope":"/","display":"standalone","background_color":"#111019","theme_color":"#111019","icons":[{"src":"favicon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}

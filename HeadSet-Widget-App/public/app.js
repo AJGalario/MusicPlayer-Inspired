@@ -97,8 +97,16 @@
   ui.play.addEventListener('click',toggle);
   $('prev').addEventListener('click',()=>{if(audio.currentTime>3)audio.currentTime=0;else step(-1);});
   $('next').addEventListener('click',()=>step(1));
-  audio.addEventListener('play',()=>{document.body.classList.add('playing');ui.playIcon.hidden=true;ui.pauseIcon.hidden=false;ui.play.setAttribute('aria-label','Pause');if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';});
-  audio.addEventListener('pause',()=>{document.body.classList.remove('playing');ui.playIcon.hidden=false;ui.pauseIcon.hidden=true;ui.play.setAttribute('aria-label','Play');if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';});
+  audio.addEventListener('play',()=>{
+    document.body.classList.add('playing');
+    ui.play.setAttribute('aria-label','Pause');
+    if('mediaSession' in navigator)navigator.mediaSession.playbackState='playing';
+  });
+  audio.addEventListener('pause',()=>{
+    document.body.classList.remove('playing');
+    ui.play.setAttribute('aria-label','Play');
+    if('mediaSession' in navigator)navigator.mediaSession.playbackState='paused';
+  });
   audio.addEventListener('ended',()=>step(1,true));
   audio.addEventListener('loadedmetadata',()=>ui.duration.textContent=fmt(audio.duration));
   audio.addEventListener('timeupdate',()=>{if(!seeking&&audio.duration>0&&Number.isFinite(audio.duration)){ui.seek.value=Math.round(audio.currentTime/audio.duration*1000);paint(ui.seek);}ui.elapsed.textContent=fmt(audio.currentTime);ui.duration.textContent=fmt(audio.duration);if('mediaSession' in navigator&&navigator.mediaSession.setPositionState&&Number.isFinite(audio.duration)&&audio.duration>0){try{navigator.mediaSession.setPositionState({duration:audio.duration,position:audio.currentTime,playbackRate:audio.playbackRate});}catch{}}});
