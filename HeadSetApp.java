@@ -176,12 +176,18 @@ public class HeadSetApp extends Application {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        Button btnWidgetMode = new Button("📱 Widget Mode");
+        btnWidgetMode.setStyle("-fx-background-color: " + BG_CARD + "; -fx-text-fill: " + ACCENT2 + "; -fx-border-color: " + BORDER_C + "; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 3 10; -fx-font-size: 11px; -fx-cursor: hand;");
+        btnWidgetMode.setOnMouseEntered(e -> btnWidgetMode.setStyle("-fx-background-color: " + BG_HOVER + "; -fx-text-fill: " + TEXT_PRI + "; -fx-border-color: " + ACCENT + "; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 3 10; -fx-font-size: 11px; -fx-cursor: hand;"));
+        btnWidgetMode.setOnMouseExited(e -> btnWidgetMode.setStyle("-fx-background-color: " + BG_CARD + "; -fx-text-fill: " + ACCENT2 + "; -fx-border-color: " + BORDER_C + "; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 3 10; -fx-font-size: 11px; -fx-cursor: hand;"));
+        btnWidgetMode.setOnAction(e -> launchWidgetMode(stage));
+
         Button btnMin = createWinButton("—", e -> stage.setIconified(true));
         Button btnMax = createWinButton("⬜", e -> stage.setMaximized(!stage.isMaximized()));
         Button btnClose = createWinButton("✕", e -> stage.hide());
         btnClose.setStyle("-fx-background-color: transparent; -fx-text-fill: #ff6e85; -fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 4 10;");
 
-        HBox bar = new HBox(8, logoIcon, logoText, spacer, btnMin, btnMax, btnClose);
+        HBox bar = new HBox(8, logoIcon, logoText, spacer, btnWidgetMode, btnMin, btnMax, btnClose);
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.setPadding(new Insets(6, 12, 6, 16));
         bar.setStyle("-fx-background-color: " + BG_SIDE + "; -fx-border-color: " + BORDER_C + "; -fx-border-width: 0 0 1 0;");
@@ -208,6 +214,26 @@ public class HeadSetApp extends Application {
         b.setOnMouseExited(e -> b.setStyle("-fx-background-color: transparent; -fx-text-fill: " + TEXT_SEC + "; -fx-font-size: 12px; -fx-cursor: hand; -fx-padding: 4 10; -fx-background-radius: 4;"));
         b.setOnAction(action);
         return b;
+    }
+
+    private void launchWidgetMode(Stage stage) {
+        stage.setIconified(true);
+        new Thread(() -> {
+            try {
+                Path root = Path.of(System.getProperty("user.dir"));
+                Path widgetBat = root.resolve("START_WIDGET_WINDOWS.bat");
+                if (Files.exists(widgetBat)) {
+                    new ProcessBuilder("cmd.exe", "/c", widgetBat.toString()).directory(root.toFile()).start();
+                } else {
+                    Path nested = root.resolve("HeadSet-Widget-App").resolve("START_WIDGET_WINDOWS.bat");
+                    if (Files.exists(nested)) {
+                        new ProcessBuilder("cmd.exe", "/c", nested.toString()).directory(nested.getParent().toFile()).start();
+                    }
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }).start();
     }
 
     // ═════════════════════════════════════════════════════════════════════════

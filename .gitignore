@@ -1,17 +1,34 @@
-# Project exclude paths
-/out/
+# Build outputs and temporary packaging directories
 _build/
 _dist/
+bin/
+build/
+dist/
+target/
 output/
+out/
 HeadSet-App/
 *.class
 *.jar
 *.exe
+!/HeadSet.exe
 .headset.lock
 *.lock
+.headset_launcher.cfg
+
+# IDE and Editor configurations
+.vscode/
 .idea/
 *.iml
-.vscode/
+.project
+.classpath
+.settings/
+
+# OS generated files
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Temporary logs & locks
+*.log
+*.tmp

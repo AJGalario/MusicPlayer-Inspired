@@ -95,7 +95,7 @@ public class MusicServer {
                     Files.deleteIfExists(lockFile);
                 } catch (IOException alreadyBound) {
                     System.out.println("HeadSet is already running on port " + runningPort + " — opening browser.");
-                    openBrowser("http://localhost:" + runningPort);
+                    launchUi("http://localhost:" + runningPort);
                     return;   // <-- exit this new instance cleanly
                 }
             } catch (Exception ignoredLockParseError) {
@@ -118,11 +118,12 @@ public class MusicServer {
 
         // ---- Start HTTP server ----
         HttpServer server = HttpServer.create(new InetSocketAddress(actualPort), 0);
-        server.createContext("/api/tracks",  safe(MusicServer::tracks));
-        server.createContext("/api/upload",  MusicServer::upload);
-        server.createContext("/audio/",      safe(MusicServer::audio));
-        server.createContext("/cover/",      safe(MusicServer::cover));
-        server.createContext("/",            safe(MusicServer::staticFile));
+        server.createContext("/api/tracks",       safe(MusicServer::tracks));
+        server.createContext("/api/upload",       MusicServer::upload);
+        server.createContext("/api/open-desktop", safe(MusicServer::openDesktop));
+        server.createContext("/audio/",           safe(MusicServer::audio));
+        server.createContext("/cover/",           safe(MusicServer::cover));
+        server.createContext("/",                 safe(MusicServer::staticFile));
         server.setExecutor(Executors.newFixedThreadPool(32));
         server.start();
 
@@ -137,7 +138,7 @@ public class MusicServer {
         installTrayIcon(server, lockFile, actualPort);
 
         // ---- Open browser ----
-        openBrowser("http://localhost:" + actualPort);
+        launchUi("http://localhost:" + actualPort);
     }
 
     /**
@@ -185,6 +186,55 @@ public class MusicServer {
         } catch (Exception ignored) {}
     }
 
+    /** Widget mode launches Microsoft Edge or Google Chrome in a compact app window.
+     *  This retains normal browser mode when HEADSET_WIDGET is not enabled. */
+    static void launchUi(String url) {
+        if ("1".equals(System.getenv("HEADSET_NO_LAUNCH"))) return;
+        if (!"1".equals(System.getenv("HEADSET_WIDGET"))) { openBrowser(url); return; }
+        String os = System.getProperty("os.name", "").toLowerCase();
+        if (os.contains("win")) {
+            String[] candidates = {
+                System.getenv("PROGRAMFILES(X86)") + "\\Microsoft\\Edge\\Application\\msedge.exe",
+                System.getenv("PROGRAMFILES") + "\\Microsoft\\Edge\\Application\\msedge.exe",
+                System.getenv("LOCALAPPDATA") + "\\Microsoft\\Edge\\Application\\msedge.exe",
+                System.getenv("PROGRAMFILES") + "\\Google\\Chrome\\Application\\chrome.exe",
+                System.getenv("PROGRAMFILES(X86)") + "\\Google\\Chrome\\Application\\chrome.exe",
+                System.getenv("LOCALAPPDATA") + "\\Google\\Chrome\\Application\\chrome.exe"
+            };
+            for (String location : candidates) {
+                if (java.nio.file.Files.isRegularFile(java.nio.file.Path.of(location))) {
+                    try {
+                        new ProcessBuilder(location, "--app=" + url, "--window-size=440,520", "--window-position=110,100").start();
+                        return;
+                    } catch (IOException ignored) {}
+                }
+            }
+        }
+        // If no app-capable browser is available, fall back to the regular browser.
+        openBrowser(url);
+    }
+
+    static void openDesktop(HttpExchange ex) throws IOException {
+        new Thread(() -> {
+            try {
+                Path root = findRoot();
+                Path exe = root.resolve("HeadSet.exe");
+                if (Files.isRegularFile(exe)) {
+                    new ProcessBuilder(exe.toString(), "--desktop").directory(root.toFile()).start();
+                } else {
+                    Path runBat = root.resolve("run.bat");
+                    if (Files.isRegularFile(runBat)) {
+                        new ProcessBuilder("cmd.exe", "/c", runBat.toString(), "desktop").directory(root.toFile()).start();
+                    }
+                }
+            } catch (Exception ignored) {}
+        }).start();
+        byte[] ok = "{\"status\":\"ok\"}".getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json");
+        ex.sendResponseHeaders(200, ok.length);
+        try (OutputStream os = ex.getResponseBody()) { os.write(ok); }
+    }
+
     // ---------------------------------------------------------------- port helper
 
     /** Returns the first free TCP port in [start, end), or -1 if none available. */
@@ -206,8 +256,8 @@ public class MusicServer {
      * Falls back gracefully if the system tray is unavailable (e.g. headless).
      */
     static void installTrayIcon(HttpServer server, Path lockFile, int port) {
-        if (!SystemTray.isSupported()) return;
         try {
+            if (java.awt.GraphicsEnvironment.isHeadless() || !SystemTray.isSupported()) return;
             // Draw a simple headset icon programmatically
             java.awt.image.BufferedImage img =
                     new java.awt.image.BufferedImage(32, 32, java.awt.image.BufferedImage.TYPE_INT_ARGB);
@@ -234,8 +284,8 @@ public class MusicServer {
             menu.add(quitItem);
             trayIcon.setPopupMenu(menu);
 
-            openItem.addActionListener(e -> openBrowser("http://localhost:" + port));
-            trayIcon.addActionListener(e -> openBrowser("http://localhost:" + port)); // double-click
+            openItem.addActionListener(e -> launchUi("http://localhost:" + port));
+            trayIcon.addActionListener(e -> launchUi("http://localhost:" + port)); // double-click
 
             quitItem.addActionListener(e -> {
                 server.stop(1);
@@ -246,7 +296,7 @@ public class MusicServer {
 
             SystemTray.getSystemTray().add(trayIcon);
             trayIcon.displayMessage("HeadSet Player", "Running at http://localhost:" + port, TrayIcon.MessageType.INFO);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             System.out.println("  (System tray unavailable — close this window to quit)");
         }
     }

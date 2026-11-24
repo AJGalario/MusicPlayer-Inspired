@@ -118,11 +118,12 @@ public class MusicServer {
 
         // ---- Start HTTP server ----
         HttpServer server = HttpServer.create(new InetSocketAddress(actualPort), 0);
-        server.createContext("/api/tracks",  safe(MusicServer::tracks));
-        server.createContext("/api/upload",  MusicServer::upload);
-        server.createContext("/audio/",      safe(MusicServer::audio));
-        server.createContext("/cover/",      safe(MusicServer::cover));
-        server.createContext("/",            safe(MusicServer::staticFile));
+        server.createContext("/api/tracks",       safe(MusicServer::tracks));
+        server.createContext("/api/upload",       MusicServer::upload);
+        server.createContext("/api/open-desktop", safe(MusicServer::openDesktop));
+        server.createContext("/audio/",           safe(MusicServer::audio));
+        server.createContext("/cover/",           safe(MusicServer::cover));
+        server.createContext("/",                 safe(MusicServer::staticFile));
         server.setExecutor(Executors.newFixedThreadPool(32));
         server.start();
 
@@ -211,6 +212,27 @@ public class MusicServer {
         }
         // If no app-capable browser is available, fall back to the regular browser.
         openBrowser(url);
+    }
+
+    static void openDesktop(HttpExchange ex) throws IOException {
+        new Thread(() -> {
+            try {
+                Path root = findRoot();
+                Path exe = root.resolve("HeadSet.exe");
+                if (Files.isRegularFile(exe)) {
+                    new ProcessBuilder(exe.toString(), "--desktop").directory(root.toFile()).start();
+                } else {
+                    Path runBat = root.resolve("run.bat");
+                    if (Files.isRegularFile(runBat)) {
+                        new ProcessBuilder("cmd.exe", "/c", runBat.toString(), "desktop").directory(root.toFile()).start();
+                    }
+                }
+            } catch (Exception ignored) {}
+        }).start();
+        byte[] ok = "{\"status\":\"ok\"}".getBytes(StandardCharsets.UTF_8);
+        ex.getResponseHeaders().set("Content-Type", "application/json");
+        ex.sendResponseHeaders(200, ok.length);
+        try (OutputStream os = ex.getResponseBody()) { os.write(ok); }
     }
 
     // ---------------------------------------------------------------- port helper
