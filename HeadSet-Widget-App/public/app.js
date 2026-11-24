@@ -139,35 +139,111 @@
     ui.libraryCount.textContent=tracks.length;
   }
   ui.search.addEventListener('input',renderList);
-  async function loadTracks(notify=false){
+  async function loadTracks(targetId = null, notify = false){
     try{
-      const res=await fetch('/api/tracks',{cache:'no-store'});if(!res.ok)throw Error('Server unavailable');
-      const remote=await res.json();const keep=tracks[current]?.id??settings.read('last',null);
-      const local=tracks.filter(t=>t.local);const playing=!audio.paused;
-      tracks=[...remote,...local];
-      if(current>=0&&playing){current=tracks.findIndex(t=>t.id===keep);if(current<0){audio.pause();current=-1;}}
-      else{const idx=tracks.findIndex(t=>t.id===keep);if(idx>=0)setTrack(idx,false);else if(tracks.length)setTrack(0,false);else {current=-1;ui.title.textContent='Your music, your space.';ui.artist.textContent='Pick a song to begin';}}
-      rebuildOrder();renderList();if(notify)toast('Library refreshed');
-    }catch{renderList();if(notify)toast('Server not available');}
+      const res = await fetch('/api/tracks', {cache: 'no-store'});
+      if(!res.ok) throw Error('Server unavailable');
+      const remote = await res.json();
+      const local = tracks.filter(t => t.local);
+      tracks = [...remote, ...local];
+
+      if (targetId) {
+        const idx = tracks.findIndex(t => t.id === targetId);
+        if (idx >= 0) {
+          setTrack(idx, true);
+        } else if (tracks.length) {
+          setTrack(tracks.length - 1, true);
+        }
+      } else if (current >= 0 && !audio.paused) {
+        const keep = tracks[current]?.id;
+        const idx = tracks.findIndex(t => t.id === keep);
+        if (idx >= 0) current = idx;
+      } else {
+        const keep = tracks[current]?.id ?? settings.read('last', null);
+        const idx = tracks.findIndex(t => t.id === keep);
+        if (idx >= 0) setTrack(idx, false);
+        else if (tracks.length) setTrack(0, false);
+        else {
+          current = -1;
+          ui.title.textContent = 'Your music, your space.';
+          ui.artist.textContent = 'Pick a song to begin';
+        }
+      }
+      rebuildOrder();
+      renderList();
+      if(notify) toast('Library refreshed');
+    }catch(err){
+      renderList();
+      if(notify) toast('Server not available');
+    }
   }
-  ui.fileInput.addEventListener('change',async()=>{
-    const files=Array.from(ui.fileInput.files);if(!files.length)return;
-    let uploaded=0, temporary=0;
+
+  async function handleFiles(fileList){
+    const files = Array.from(fileList || []);
+    if(!files.length) return;
+    let lastUploadedId = null;
+    let count = 0;
+    toast('Adding music...');
+
     for(const file of files){
-      if(!/\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|webm)$/i.test(file.name))continue;
-      try{
-        const res=await fetch('/api/upload',{method:'POST',headers:{'X-Filename':encodeURIComponent(file.name)},body:file});
-        if(!res.ok)throw Error('Upload unavailable');uploaded++;
-      }catch{
-        const url=URL.createObjectURL(file);currentObjectUrls.push(url);const base=file.name.replace(/\.[^.]+$/,'');const split=base.indexOf(' - ');const artist=split>0?base.slice(0,split):'';const title=split>0?base.slice(split+3):base;
-        tracks.push({id:'local:'+url,title,artist,local:true,src:url,cover:false});temporary++;
+      if(!/\.(mp3|m4a|aac|wav|ogg|oga|opus|flac|webm)$/i.test(file.name)) continue;
+      let uploaded = false;
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: {'X-Filename': encodeURIComponent(file.name)},
+          body: file
+        });
+        if(res.ok){
+          const data = await res.json();
+          if(data.ok){
+            uploaded = true;
+            lastUploadedId = data.id;
+            count++;
+          }
+        }
+      }catch(e){
+        console.warn('Upload error, using local blob:', e);
+      }
+
+      if(!uploaded){
+        try {
+          const url = URL.createObjectURL(file);
+          currentObjectUrls.push(url);
+          const base = file.name.replace(/\.[^.]+$/, '');
+          const split = base.indexOf(' - ');
+          const artist = split > 0 ? base.slice(0, split).trim() : '';
+          const title = split > 0 ? base.slice(split + 3).trim() : base;
+          const localTrack = {id: 'local:' + Date.now() + '_' + Math.random(), title, artist, local: true, src: url, cover: false};
+          tracks.push(localTrack);
+          lastUploadedId = localTrack.id;
+          count++;
+        }catch(err){}
       }
     }
-    ui.fileInput.value='';
-    if(uploaded)await loadTracks();
-    rebuildOrder();renderList();
-    if(current<0&&tracks.length)setTrack(0,false);
-    toast(`${uploaded+temporary} ${uploaded+temporary===1?'song':'songs'} added${temporary?' (temporary in browser)':''}`);
+
+    if(ui.fileInput) ui.fileInput.value = '';
+
+    if(count > 0){
+      await loadTracks(lastUploadedId);
+      rebuildOrder();
+      renderList();
+      const currentTrack = tracks[current];
+      toast(`Added: ${currentTrack ? currentTrack.title : count + ' song(s)'}`);
+    } else {
+      toast('No supported audio files selected');
+    }
+  }
+
+  ui.fileInput.addEventListener('change', () => handleFiles(ui.fileInput.files));
+
+  window.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); });
+  window.addEventListener('drop', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+      handleFiles(e.dataTransfer.files);
+    }
   });
   function initAudioContext(){
     if(audioContext)return;

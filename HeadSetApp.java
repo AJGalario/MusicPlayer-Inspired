@@ -1234,13 +1234,18 @@ public class HeadSetApp extends Application {
         List<File> files = fc.showOpenMultipleDialog(primaryStage);
         if (files == null) return;
 
+        int firstAdded = -1;
         for (File f : files) {
             if (library.stream().noneMatch(t -> t.path.equals(f.getAbsolutePath()))) {
                 library.add(new Track(f));
+                if (firstAdded < 0) firstAdded = library.size() - 1;
             }
         }
         refreshHomeTracks();
         refreshLibraryView();
+        if (firstAdded >= 0) {
+            playTrack(firstAdded);
+        }
     }
 
     private void addFolder() {

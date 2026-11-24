@@ -337,23 +337,45 @@ public class MusicServer {
         try {
             String rawName = ex.getRequestHeaders().getFirst("X-Filename");
             if (rawName == null || rawName.isBlank()) rawName = "upload.mp3";
-            String fileName = URLDecoder.decode(rawName, StandardCharsets.UTF_8)
-                                        .replaceAll("[/\\\\:*?\"<>|]", "_"); // sanitize
+            String fileName;
+            try {
+                fileName = URLDecoder.decode(rawName, StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                fileName = rawName;
+            }
+            fileName = fileName.replaceAll("[/\\\\:*?\"<>|]", "_").trim(); // sanitize
+            if (fileName.isEmpty()) fileName = "upload.mp3";
+
             String ext = ext(Path.of(fileName));
             if (!AUDIO.contains(ext)) {
-                byte[] msg = "Unsupported file type".getBytes(StandardCharsets.UTF_8);
-                send(ex, 415, MIME.get("json"), ("{\"error\":\"unsupported\"}").getBytes(StandardCharsets.UTF_8));
+                send(ex, 415, MIME.get("json"), ("{\"error\":\"Unsupported audio format\"}").getBytes(StandardCharsets.UTF_8));
                 return;
             }
+
+            Files.createDirectories(musicDir);
             Path dest = musicDir.resolve(fileName).normalize();
-            if (!dest.startsWith(musicDir)) { ex.sendResponseHeaders(400, -1); return; }
-            try (InputStream in = ex.getRequestBody()) {
-                Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
+            if (!dest.startsWith(musicDir)) {
+                send(ex, 400, MIME.get("json"), ("{\"error\":\"Invalid destination path\"}").getBytes(StandardCharsets.UTF_8));
+                return;
             }
-            byte[] resp = ("{\"ok\":true,\"file\":" + json(fileName) + "}").getBytes(StandardCharsets.UTF_8);
+
+            try (InputStream in = ex.getRequestBody();
+                 OutputStream out = Files.newOutputStream(dest, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+                byte[] buf = new byte[64 * 1024];
+                int n;
+                while ((n = in.read(buf)) != -1) {
+                    out.write(buf, 0, n);
+                }
+            }
+
+            String rel = musicDir.relativize(dest).toString().replace('\\', '/');
+            String trackId = Base64.getUrlEncoder().withoutPadding().encodeToString(rel.getBytes(StandardCharsets.UTF_8));
+
+            byte[] resp = ("{\"ok\":true,\"file\":" + json(fileName) + ",\"id\":" + json(trackId) + "}").getBytes(StandardCharsets.UTF_8);
             send(ex, 200, MIME.get("json"), resp);
         } catch (Exception e) {
-            try { send(ex, 500, MIME.get("json"), "{\"error\":\"server error\"}".getBytes()); } catch (IOException ignored) {}
+            e.printStackTrace();
+            try { send(ex, 500, MIME.get("json"), "{\"error\":\"server error\"}".getBytes(StandardCharsets.UTF_8)); } catch (IOException ignored) {}
         } finally {
             ex.close();
         }
